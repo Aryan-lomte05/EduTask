@@ -3,5 +3,5 @@ package com.edutask.reaction;
 import com.edutask.model.Task;
 
 public interface Reaction {
-    void execute(Task task);
+    void execute(Task task);  // ← Main method name
 }

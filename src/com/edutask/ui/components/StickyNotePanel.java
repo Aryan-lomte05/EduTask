@@ -4,6 +4,7 @@ import com.edutask.model.*;
 import com.edutask.ui.themes.PremiumTheme;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.*;
 
 public class StickyNotePanel extends JPanel {
     private Task task;
@@ -40,33 +41,36 @@ public class StickyNotePanel extends JPanel {
         contentPanel.setOpaque(false);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        // Subject/Topic (for study tasks)
+        // Subject/Topic (for study tasks) - NO EMOJI
         if (task instanceof StudyTask st) {
-            JLabel subjectLabel = new JLabel("📚 " + st.getSubject() + " - " + st.getTopic());
+            JLabel subjectLabel = new JLabel("[" + st.getSubject() + " - " + st.getTopic() + "]");
             subjectLabel.setFont(PremiumTheme.FONT_SMALL);
             subjectLabel.setForeground(PremiumTheme.TEXT_SECONDARY);
             contentPanel.add(subjectLabel);
             contentPanel.add(Box.createVerticalStrut(5));
         }
 
-        // Due date
-        JLabel dueDateLabel = new JLabel("📅 " + com.edutask.util.DateUtils.getDueLabel(task.getDueDate()));
+        // Due date - NO EMOJI
+        JLabel dueDateLabel = new JLabel("Due: " + com.edutask.util.DateUtils.getDueLabel(task.getDueDate()));
         dueDateLabel.setFont(PremiumTheme.FONT_SMALL);
         dueDateLabel.setForeground(PremiumTheme.TEXT_SECONDARY);
         contentPanel.add(dueDateLabel);
         contentPanel.add(Box.createVerticalStrut(5));
 
-        // Priority stars
-        JLabel priorityLabel = new JLabel("⭐ " + "★".repeat(task.getPriority()));
+        // Priority stars - REPLACED WITH ASTERISKS
+        JLabel priorityLabel = new JLabel("Priority: " + "*".repeat(task.getPriority()));
         priorityLabel.setFont(PremiumTheme.FONT_SMALL);
         priorityLabel.setForeground(getPriorityColor());
         contentPanel.add(priorityLabel);
         contentPanel.add(Box.createVerticalStrut(5));
 
-        // Status badge
-        JLabel statusLabel = new JLabel(getStatusEmoji() + " " + task.getStatus().getDisplay());
-        statusLabel.setFont(PremiumTheme.FONT_SMALL);
-        statusLabel.setForeground(PremiumTheme.TEXT_SECONDARY);
+        // Status badge - TEXT ONLY
+        JLabel statusLabel = new JLabel(getStatusText());
+        statusLabel.setFont(new Font("Arial", Font.BOLD, 10));
+        statusLabel.setForeground(Color.WHITE);
+        statusLabel.setOpaque(true);
+        statusLabel.setBackground(getStatusColor());
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
         contentPanel.add(statusLabel);
 
         add(titlePanel, BorderLayout.NORTH);
@@ -82,7 +86,7 @@ public class StickyNotePanel extends JPanel {
         int width = getWidth();
         int height = getHeight();
 
-        // Shadow (slight offset)
+        // Shadow
         if (isHovered) {
             g2.setColor(new Color(0, 0, 0, 50));
             g2.fillRoundRect(5, 5, width - 10, height - 10, 8, 8);
@@ -161,11 +165,19 @@ public class StickyNotePanel extends JPanel {
         };
     }
 
-    private String getStatusEmoji() {
+    private Color getStatusColor() {
         return switch (task.getStatus()) {
-            case COMPLETED -> "✅";
-            case IN_PROGRESS -> "⏳";
-            default -> "📌";
+            case COMPLETED -> new Color(50, 180, 50);
+            case IN_PROGRESS -> new Color(255, 150, 0);
+            default -> new Color(150, 150, 150);
+        };
+    }
+
+    private String getStatusText() {
+        return switch (task.getStatus()) {
+            case COMPLETED -> "[DONE]";
+            case IN_PROGRESS -> "[IN PROGRESS]";
+            default -> "[TO DO]";
         };
     }
 

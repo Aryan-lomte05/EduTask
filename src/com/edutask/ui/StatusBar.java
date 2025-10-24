@@ -46,16 +46,18 @@ public class StatusBar extends JPanel {
         int completed = taskService.getTasksByStatus(com.edutask.model.Status.COMPLETED).size();
         int streak = taskService.getStreak();
 
-        totalLabel.setText("📋 Total: " + total);
-        todayLabel.setText("📅 Today: " + today);
-        completedLabel.setText("✅ Done: " + completed);
-        streakLabel.setText("🔥 Streak: " + streak);
+        totalLabel.setText("Total: " + total);
+        todayLabel.setText("Today: " + today);
+        completedLabel.setText("Done: " + completed);
+        completedLabel.setForeground(new Color(50, 150, 50)); // Green color
+        streakLabel.setText("Streak: " + streak + " days");
+        streakLabel.setForeground(new Color(255, 100, 0)); // Orange color
     }
 
     private void startClock() {
         Timer timer = new Timer(1000, e -> {
             String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-            clockLabel.setText("🕐 " + time);
+            clockLabel.setText("Time: " + time);
         });
         timer.start();
     }

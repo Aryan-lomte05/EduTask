@@ -26,6 +26,16 @@ public abstract class Task {
         this.created = LocalDateTime.now();
         this.modified = LocalDateTime.now();
     }
+    // Add this to Task.java
+    public String getDisplaySubject() {
+        if (this instanceof StudyTask st) {
+            return st.getSubject();
+        } else if (this instanceof PersonalTask pt) {
+            return pt.getTag();
+        }
+        return "General";
+    }
+
 
     // Getters and Setters
     public String getId() { return id; }
@@ -58,6 +68,5 @@ public abstract class Task {
     public LocalDateTime getCreated() { return created; }
     public LocalDateTime getModified() { return modified; }
 
-    public abstract String getDisplaySubject();
     public abstract String getDisplayTopic();
 }
