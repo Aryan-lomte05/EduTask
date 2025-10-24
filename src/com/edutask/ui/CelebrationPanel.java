@@ -72,7 +72,7 @@ public class CelebrationPanel extends JPanel {
         btnPanel.add(closeBtn);
         add(btnPanel, BorderLayout.SOUTH);
 
-        // Start animation
+        // Start com.edutask.animation
         animationTimer = new javax.swing.Timer(30, e -> {  // ← SPECIFY javax.swing.Timer
             for (Particle p : particles) {
                 p.update();
