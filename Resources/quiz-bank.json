@@ -1,0 +1,46 @@
+[
+  {
+    "id": "q1",
+    "subject": "DSA",
+    "topic": "Trees",
+    "type": "MCQ",
+    "prompt": "What is the time complexity of searching in a balanced BST?",
+    "options": ["O(n)", "O(log n)", "O(n²)", "O(1)"],
+    "answerKey": "O(log n)",
+    "explanation": "Binary search halves the search space each time.",
+    "difficulty": 2
+  },
+  {
+    "id": "q2",
+    "subject": "DSA",
+    "topic": "Trees",
+    "type": "TRUE_FALSE",
+    "prompt": "In a complete binary tree, all levels are fully filled except possibly the last.",
+    "options": ["True", "False"],
+    "answerKey": "True",
+    "explanation": "Definition of complete binary tree.",
+    "difficulty": 1
+  },
+  {
+    "id": "q3",
+    "subject": "DBMS",
+    "topic": "Normalization",
+    "type": "MCQ",
+    "prompt": "Which normal form eliminates transitive dependencies?",
+    "options": ["1NF", "2NF", "3NF", "BCNF"],
+    "answerKey": "3NF",
+    "explanation": "Third Normal Form removes transitive dependencies.",
+    "difficulty": 2
+  },
+  {
+    "id": "q4",
+    "subject": "Java",
+    "topic": "OOP",
+    "type": "MCQ",
+    "prompt": "Which keyword is used to implement inheritance in Java?",
+    "options": ["implements", "extends", "inherits", "super"],
+    "answerKey": "extends",
+    "explanation": "extends is used for class inheritance.",
+    "difficulty": 1
+  }
+]

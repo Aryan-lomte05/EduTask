@@ -1,0 +1,22 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# Compiled
+*.class
+target/
+
+# Runtime data
+data/
+backups/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Optional: Keep JARs or exclude them
+# lib/*.jar
