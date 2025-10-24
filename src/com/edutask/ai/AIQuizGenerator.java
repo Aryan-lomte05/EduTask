@@ -7,37 +7,36 @@ import java.net.*;
 import java.util.*;
 
 public class AIQuizGenerator {
-    // Google Gemini API - FREE, 60 requests/minute
-    // Get key from: https://makersuite.google.com/app/apikey
-    private static final String GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
-    private String apiKey = "AIzaSyAGaQ0wjdOVZt8EDNHouY7Gs2t0N9w9BOE"; // GET YOUR FREE KEY: makersuite.google.com/app/apikey
+    private static final String GEMINI_API = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
+    private String apiKey = "AIzaSyBNDpn7m04jLj_JeOrld3zgez2b4qvO22k"; // Replace with your key
     private Gson gson = new Gson();
+
+    // Maximum batch size per API call to avoid timeout
+    private static final int BATCH_SIZE = 5;
 
     public List<QuizQuestion> generateQuiz(String subject, String topic, int numQuestions) {
         List<QuizQuestion> questions = new ArrayList<>();
-
         System.out.println("🤖 Generating quiz with AI...");
         System.out.println("📚 " + subject + " → " + topic);
 
         if (apiKey.isEmpty()) {
-            System.out.println("⚠️ No API key set. Get free key from: makersuite.google.com/app/apikey");
+            System.out.println("⚠️ No API key set. Falling back to generic questions.");
             return generateSmartFallback(subject, topic, numQuestions);
         }
 
         try {
-            // Generate all questions in one API call (faster!)
-            String prompt = buildCompleteQuizPrompt(subject, topic, numQuestions);
-            String response = callGeminiAPI(prompt);
+            for (int i = 0; i < numQuestions; i += BATCH_SIZE) {
+                int batchCount = Math.min(BATCH_SIZE, numQuestions - i);
+                String prompt = buildDynamicPrompt(subject, topic, batchCount);
+                String response = callGeminiAPI(prompt);
+                List<QuizQuestion> batchQuestions = parseCompleteQuiz(response, batchCount);
 
-            System.out.println("✅ AI Response received");
-            questions = parseCompleteQuiz(response, numQuestions);
-
-            if (questions.size() < numQuestions) {
-                int needed = numQuestions - questions.size();
-                System.out.println("📝 Adding " + needed + " fallback questions");
-                questions.addAll(generateSmartFallback(subject, topic, needed));
+                if (batchQuestions.isEmpty()) {
+                    // Fallback for this batch
+                    batchQuestions = generateSmartFallback(subject, topic, batchCount);
+                }
+                questions.addAll(batchQuestions);
             }
-
         } catch (Exception e) {
             System.err.println("❌ AI Error: " + e.getMessage());
             return generateSmartFallback(subject, topic, numQuestions);
@@ -48,30 +47,28 @@ public class AIQuizGenerator {
         return questions;
     }
 
-    private String buildCompleteQuizPrompt(String subject, String topic, int count) {
+    private String buildDynamicPrompt(String subject, String topic, int count) {
         return String.format("""
-            Generate %d quiz questions about "%s" in %s.
-            
-            Mix of question types:
-            - Multiple Choice (MCQ): 4 options, single answer
-            - True/False: Simple statement
-            
-            Format EXACTLY like this:
-            
-            [MCQ]
-            Question: What is the definition of %s?
-            A) Option 1
-            B) Option 2
-            C) Option 3  
-            D) Option 4
-            Answer: C
-            
-            [TRUE_FALSE]
-            Statement: %s is important in %s
-            Answer: TRUE
-            
-            Generate challenging, educational questions now:
-            """, count, topic, subject, topic, topic, subject);
+                Generate %d quiz questions about "%s" in %s.
+                Mix of question types:
+                - Multiple Choice (MCQ) with 4 options
+                - True/False statements
+
+                Format each question as:
+                [MCQ]
+                Question: ...
+                A) ...
+                B) ...
+                C) ...
+                D) ...
+                Answer: ...
+
+                [TRUE_FALSE]
+                Statement: ...
+                Answer: TRUE/FALSE
+
+                Generate %d educational questions now.
+                """, count, topic, subject, count);
     }
 
     @SuppressWarnings("deprecation")
@@ -82,8 +79,8 @@ public class AIQuizGenerator {
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json");
         conn.setDoOutput(true);
-        conn.setConnectTimeout(15000);
-        conn.setReadTimeout(15000);
+        conn.setConnectTimeout(60000); // 60 seconds
+        conn.setReadTimeout(60000);
 
         // Build Gemini request
         JsonObject request = new JsonObject();
@@ -97,12 +94,10 @@ public class AIQuizGenerator {
         contents.add(content);
         request.add("contents", contents);
 
-        // Send
         try (OutputStream os = conn.getOutputStream()) {
             os.write(request.toString().getBytes());
         }
 
-        // Read response
         int code = conn.getResponseCode();
         if (code != 200) {
             try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getErrorStream()))) {
@@ -136,6 +131,7 @@ public class AIQuizGenerator {
         throw new IOException("Empty response from Gemini");
     }
 
+    // Parsing logic (same as before)
     private List<QuizQuestion> parseCompleteQuiz(String response, int expectedCount) {
         List<QuizQuestion> questions = new ArrayList<>();
         String[] blocks = response.split("\\[(?=MCQ|TRUE_FALSE)");
@@ -167,19 +163,13 @@ public class AIQuizGenerator {
 
         for (String line : lines) {
             line = line.trim();
-            if (line.startsWith("Question:")) {
-                question = line.substring(9).trim();
-            } else if (line.matches("^[A-D]\\).*")) {
-                options.add(line.substring(3).trim());
-            } else if (line.startsWith("Answer:")) {
-                char ans = line.substring(7).trim().toUpperCase().charAt(0);
-                correct = ans - 'A';
-            }
+            if (line.startsWith("Question:")) question = line.substring(9).trim();
+            else if (line.matches("^[A-D]\\).*")) options.add(line.substring(3).trim());
+            else if (line.startsWith("Answer:")) correct = line.substring(7).trim().toUpperCase().charAt(0) - 'A';
         }
 
-        if (!question.isEmpty() && options.size() == 4) {
+        if (!question.isEmpty() && options.size() == 4)
             return QuizQuestion.createMCQ(question, options, correct);
-        }
         return null;
     }
 
@@ -190,55 +180,25 @@ public class AIQuizGenerator {
 
         for (String line : lines) {
             line = line.trim();
-            if (line.startsWith("Statement:")) {
-                statement = line.substring(10).trim();
-            } else if (line.startsWith("Answer:")) {
-                answer = line.substring(7).trim().equalsIgnoreCase("TRUE");
-            }
+            if (line.startsWith("Statement:")) statement = line.substring(10).trim();
+            else if (line.startsWith("Answer:")) answer = line.substring(7).trim().equalsIgnoreCase("TRUE");
         }
 
-        if (!statement.isEmpty()) {
-            return QuizQuestion.createTrueFalse(statement, answer);
-        }
+        if (!statement.isEmpty()) return QuizQuestion.createTrueFalse(statement, answer);
         return null;
     }
 
-    // Smart fallback with your improved Maths/Surds questions
     private List<QuizQuestion> generateSmartFallback(String subject, String topic, int count) {
         List<QuizQuestion> questions = new ArrayList<>();
-
-        // Math-specific questions
+        // Add subject-specific fallback here (Math Surds example)
         if (subject.toLowerCase().contains("math") && topic.toLowerCase().contains("surd")) {
-            questions.add(QuizQuestion.createMCQ(
-                    "Which of the following is a surd?",
-                    List.of("√16", "√7", "√9", "√25"),
-                    1
-            ));
-
-            questions.add(QuizQuestion.createMCQ(
-                    "Simplify √48:",
-                    List.of("4√3", "6√2", "2√12", "3√16"),
-                    0
-            ));
-
-            questions.add(QuizQuestion.createTrueFalse(
-                    "A surd is an irrational number",
-                    true
-            ));
-
-            questions.add(QuizQuestion.createMCQ(
-                    "Rationalize 1/√3:",
-                    List.of("√3/3", "1/3", "3/√3", "√3"),
-                    0
-            ));
-
-            questions.add(QuizQuestion.createTrueFalse(
-                    "√a × √b = √(ab) for all positive a and b",
-                    true
-            ));
+            questions.add(QuizQuestion.createMCQ("Which of the following is a surd?", List.of("√16","√7","√9","√25"), 1));
+            questions.add(QuizQuestion.createMCQ("Simplify √48:", List.of("4√3","6√2","2√12","3√16"),0));
+            questions.add(QuizQuestion.createTrueFalse("A surd is an irrational number", true));
+            questions.add(QuizQuestion.createMCQ("Rationalize 1/√3:", List.of("√3/3","1/3","3/√3","√3"),0));
+            questions.add(QuizQuestion.createTrueFalse("√a × √b = √(ab) for all positive a and b", true));
         }
 
-        // Generic questions to fill
         while (questions.size() < count) {
             questions.add(QuizQuestion.createMCQ(
                     "What is important when studying " + topic + "?",
@@ -254,4 +214,3 @@ public class AIQuizGenerator {
         this.apiKey = key;
     }
 }
-
