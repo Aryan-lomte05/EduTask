@@ -66,19 +66,23 @@ EduTask isn't just another task manager, it's your **AI-powered study companion*
 <div align="center">
 
 
+https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/About.png
+*The Lovely Gist*
 
+
+https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/Landing.png
 *Beautiful sticky notes with realistic pins, shadows, and color-coded priorities*
 
 
-
+https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/Basic%20Quiz.png
 *Intelligent question generation with multiple question types and instant feedback*
 
 
-
+https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/Annual.png
 *Seamless navigation between different time scales with interactive controls*
 
 
-
+https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/Landing%20with%20Analytics.png
 *Track your productivity with visual charts and real-time statistics*
 
 </div>
