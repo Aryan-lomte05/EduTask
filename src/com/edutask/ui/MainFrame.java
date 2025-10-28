@@ -54,24 +54,13 @@ public class MainFrame extends JFrame {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         // Create panels
-        filterPanel = new FilterPanel(this);
         taskListPanel = new TaskListPanel(this, taskService);
         taskFormPanel = new TaskFormPanel(this, taskService);
         statusBar = new StatusBar(taskService);
         analyticsPanel = new AnalyticsPanel(taskService, eventBus);
 
-        // Left: Filters
-        JPanel filterContainer = new JPanel(new BorderLayout());
-        filterContainer.setOpaque(false);
-        JScrollPane filterScroll = new JScrollPane(filterPanel);
-        filterScroll.setPreferredSize(new Dimension(240, 0));
-        filterScroll.setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(PremiumTheme.CORK_DARK, 2),
-                "Filters", 0, 0, PremiumTheme.FONT_TITLE, PremiumTheme.TEXT_PRIMARY
-        ));
-        filterScroll.setOpaque(false);
-        filterScroll.getViewport().setOpaque(false);
-        filterContainer.add(filterScroll, BorderLayout.CENTER);
+        // NEW: Create compact left panel with filters + actions
+        JPanel leftPanel = createCompactLeftPanel();
 
         // Center: Task Board
         JPanel centerPanel = new JPanel(new BorderLayout());
@@ -90,7 +79,7 @@ public class MainFrame extends JFrame {
         rightPanel.setPreferredSize(new Dimension(420, 0));
 
         // Assembly
-        mainPanel.add(filterContainer, BorderLayout.WEST);
+        mainPanel.add(leftPanel, BorderLayout.WEST);
         mainPanel.add(centerPanel, BorderLayout.CENTER);
         mainPanel.add(rightPanel, BorderLayout.EAST);
 
@@ -99,6 +88,285 @@ public class MainFrame extends JFrame {
 
         setJMenuBar(createMenuBar());
     }
+
+    // NEW METHOD: Compact left panel with 50% filters + 50% actions
+    private JPanel createCompactLeftPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(PremiumTheme.CORK_BACKGROUND);
+        panel.setPreferredSize(new Dimension(220, 0));
+        panel.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 3, PremiumTheme.CORK_DARK));
+
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        splitPane.setDividerSize(2);
+        splitPane.setResizeWeight(0.5);
+        splitPane.setBorder(null);
+        splitPane.setOpaque(false);
+
+        splitPane.setTopComponent(createStylishFilterPanel());
+        splitPane.setBottomComponent(createStylishActionPanel());
+
+        panel.add(splitPane, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel createStylishFilterPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(new Color(205, 170, 125));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(3, 3, 1, 3, new Color(139, 90, 43)),
+                BorderFactory.createEmptyBorder(12, 10, 12, 10)
+        ));
+
+        // Header
+        JLabel titleLabel = new JLabel("FILTERS", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        titleLabel.setForeground(new Color(80, 40, 20));
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(titleLabel);
+        panel.add(Box.createVerticalStrut(8));
+
+        // Separator
+        JSeparator sep = new JSeparator();
+        sep.setMaximumSize(new Dimension(200, 2));
+        sep.setForeground(new Color(139, 90, 43));
+        panel.add(sep);
+        panel.add(Box.createVerticalStrut(10));
+
+        // Store combos for filter logic
+        JComboBox<String> categoryCombo = createStylishCombo(new String[]{
+                "All", "Study", "Personal", "Work", "Sports", "Health", "Movies", "Games", "Travel", "Shopping", "Social"
+        });
+
+        JComboBox<String> statusCombo = createStylishCombo(new String[]{
+                "All", "To Do", "In Progress", "Completed"
+        });
+
+        JComboBox<String> priorityCombo = createStylishCombo(new String[]{
+                "All", "1", "2", "3", "4", "5"
+        });
+
+        JComboBox<String> dueCombo = createStylishCombo(new String[]{
+                "All", "Today", "This Week", "Overdue"
+        });
+
+        // Add filters with labels
+        panel.add(createFilterRow("Category:", categoryCombo));
+        panel.add(Box.createVerticalStrut(8));
+        panel.add(createFilterRow("Status:", statusCombo));
+        panel.add(Box.createVerticalStrut(8));
+        panel.add(createFilterRow("Priority:", priorityCombo));
+        panel.add(Box.createVerticalStrut(8));
+        panel.add(createFilterRow("Due Date:", dueCombo));
+        panel.add(Box.createVerticalStrut(12));
+
+        // Action buttons
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 5, 0));
+        buttonPanel.setOpaque(false);
+        buttonPanel.setMaximumSize(new Dimension(200, 32));
+
+        JButton applyBtn = createStylishButton("APPLY", new Color(70, 130, 180));
+        JButton resetBtn = createStylishButton("RESET", new Color(180, 100, 70));
+
+        applyBtn.addActionListener(e -> {
+            String cat = (String) categoryCombo.getSelectedItem();
+            String stat = (String) statusCombo.getSelectedItem();
+            String pri = (String) priorityCombo.getSelectedItem();
+            String due = (String) dueCombo.getSelectedItem();
+            applyFilters(cat, stat, pri, due);
+            com.edutask.audio.SoundManager.getInstance().playClick();
+        });
+
+        resetBtn.addActionListener(e -> {
+            categoryCombo.setSelectedIndex(0);
+            statusCombo.setSelectedIndex(0);
+            priorityCombo.setSelectedIndex(0);
+            dueCombo.setSelectedIndex(0);
+            applyFilters("All", "All", "All", "All");
+            com.edutask.audio.SoundManager.getInstance().playClick();
+        });
+
+        buttonPanel.add(applyBtn);
+        buttonPanel.add(resetBtn);
+        panel.add(buttonPanel);
+
+        return panel;
+    }
+
+    private JPanel createStylishActionPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(new Color(195, 160, 115));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 3, 3, 3, new Color(139, 90, 43)),
+                BorderFactory.createEmptyBorder(12, 8, 12, 8)
+        ));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.insets = new Insets(4, 4, 4, 4);
+        gbc.weightx = 0.5;
+        gbc.weighty = 0.2;
+
+        // Header
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 2;
+        JLabel titleLabel = new JLabel("QUICK ACTIONS", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        titleLabel.setForeground(new Color(80, 40, 20));
+        panel.add(titleLabel, gbc);
+
+        // Separator
+        gbc.gridy = 1;
+        JSeparator sep = new JSeparator();
+        sep.setForeground(new Color(139, 90, 43));
+        panel.add(sep, gbc);
+
+        gbc.gridwidth = 1;
+
+        // Row 1
+        gbc.gridy = 2;
+        gbc.gridx = 0;
+        panel.add(createPremiumActionButton("ADD", new Color(50, 150, 50), e -> {
+            taskFormPanel.clearForm();
+            com.edutask.audio.SoundManager.getInstance().playAdd();
+        }), gbc);
+
+        gbc.gridx = 1;
+        panel.add(createPremiumActionButton("EDIT", new Color(70, 130, 180), e -> {
+            taskListPanel.editSelectedTask();
+        }), gbc);
+
+        // Row 2
+        gbc.gridy = 3;
+        gbc.gridx = 0;
+        panel.add(createPremiumActionButton("DELETE", new Color(200, 60, 60), e -> {
+            taskListPanel.deleteSelectedTask();
+        }), gbc);
+
+        gbc.gridx = 1;
+        panel.add(createPremiumActionButton("DONE", new Color(100, 180, 100), e -> {
+            taskListPanel.completeSelectedTask();
+        }), gbc);
+
+        // Row 3
+        gbc.gridy = 4;
+        gbc.gridx = 0;
+        panel.add(createPremiumActionButton("CALENDAR", new Color(180, 100, 180), e -> {
+            openCalendarWindow();
+            com.edutask.audio.SoundManager.getInstance().playClick();
+        }), gbc);
+
+        gbc.gridx = 1;
+        panel.add(createPremiumActionButton("REFRESH", new Color(100, 150, 200), e -> {
+            refreshAll();
+            com.edutask.audio.SoundManager.getInstance().playClick();
+        }), gbc);
+
+        return panel;
+    }
+
+    private JPanel createFilterRow(String label, JComboBox<String> combo) {
+        JPanel row = new JPanel(new BorderLayout(5, 0));
+        row.setOpaque(false);
+        row.setMaximumSize(new Dimension(200, 28));
+
+        JLabel labelComp = new JLabel(label);
+        labelComp.setFont(new Font("Arial", Font.BOLD, 10));
+        labelComp.setForeground(new Color(60, 30, 10));
+        labelComp.setPreferredSize(new Dimension(65, 28));
+
+        row.add(labelComp, BorderLayout.WEST);
+        row.add(combo, BorderLayout.CENTER);
+
+        return row;
+    }
+
+    private JComboBox<String> createStylishCombo(String[] items) {
+        JComboBox<String> combo = new JComboBox<>(items);
+        combo.setFont(new Font("Arial", Font.PLAIN, 10));
+        combo.setBackground(Color.WHITE);
+        combo.setForeground(new Color(50, 50, 50));
+        combo.setBorder(BorderFactory.createLineBorder(new Color(139, 90, 43), 1));
+        combo.setMaximumSize(new Dimension(125, 26));
+        return combo;
+    }
+
+    private JButton createStylishButton(String text, Color bgColor) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Arial", Font.BOLD, 11));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(bgColor);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setOpaque(true);
+
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btn.setBackground(bgColor.brighter());
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btn.setBackground(bgColor);
+            }
+        });
+
+        return btn;
+    }
+
+    private JButton createPremiumActionButton(String text, Color bgColor,
+                                              java.awt.event.ActionListener action) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Arial", Font.BOLD, 10));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(bgColor);
+        btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(bgColor.darker(), 2, true),
+                BorderFactory.createEmptyBorder(8, 3, 8, 3)
+        ));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setOpaque(true);
+        btn.addActionListener(action);
+
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btn.setBackground(bgColor.brighter());
+                btn.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(Color.WHITE, 2, true),
+                        BorderFactory.createEmptyBorder(8, 3, 8, 3)
+                ));
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btn.setBackground(bgColor);
+                btn.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(bgColor.darker(), 2, true),
+                        BorderFactory.createEmptyBorder(8, 3, 8, 3)
+                ));
+            }
+        });
+
+        return btn;
+    }
+
+
+    private JLabel createFilterLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(new Font("Arial", Font.BOLD, 11));
+        label.setForeground(PremiumTheme.TEXT_SECONDARY);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return label;
+    }
+
+    private void styleComboBox(JComboBox<?> combo) {
+        combo.setFont(new Font("Arial", Font.PLAIN, 11));
+        combo.setMaximumSize(new Dimension(200, 28));
+        combo.setAlignmentX(Component.LEFT_ALIGNMENT);
+    }
+
+    // ADD THIS GETTER METHOD for TaskDetailsDialog
+    public TaskFormPanel getTaskFormPanel() {
+        return taskFormPanel;
+    }
+
 
     private JPanel createSearchBar() {
         JPanel panel = new JPanel(new BorderLayout(8, 8));

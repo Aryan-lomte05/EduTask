@@ -1,18 +1,26 @@
 package com.edutask.ui.components;
 
 import com.edutask.model.*;
+import com.edutask.service.TaskService;
+import com.edutask.ui.MainFrame;
+import com.edutask.ui.TaskDetailsDialog;
 import com.edutask.ui.themes.PremiumTheme;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.geom.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class StickyNotePanel extends JPanel {
     private Task task;
+    private TaskService taskService;
+    private MainFrame mainFrame;
     private boolean isHovered = false;
     private boolean isSelected = false;
 
-    public StickyNotePanel(Task task) {
+    public StickyNotePanel(Task task, TaskService taskService, MainFrame mainFrame) {
         this.task = task;
+        this.taskService = taskService;
+        this.mainFrame = mainFrame;
 
         setLayout(new BorderLayout(8, 8));
         setOpaque(false);
@@ -21,7 +29,7 @@ public class StickyNotePanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(15, 12, 12, 12));
 
         initializeContent();
-        addHoverEffect();
+        addInteractionHandlers();
     }
 
     private void initializeContent() {
@@ -41,30 +49,36 @@ public class StickyNotePanel extends JPanel {
         contentPanel.setOpaque(false);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        // Subject/Topic (for study tasks) - NO EMOJI
+        // Subject/Topic (for study tasks)
         if (task instanceof StudyTask st) {
             JLabel subjectLabel = new JLabel("[" + st.getSubject() + " - " + st.getTopic() + "]");
             subjectLabel.setFont(PremiumTheme.FONT_SMALL);
             subjectLabel.setForeground(PremiumTheme.TEXT_SECONDARY);
             contentPanel.add(subjectLabel);
             contentPanel.add(Box.createVerticalStrut(5));
+        } else if (task instanceof PersonalTask pt) {
+            JLabel tagLabel = new JLabel("[" + pt.getTag() + "]");
+            tagLabel.setFont(PremiumTheme.FONT_SMALL);
+            tagLabel.setForeground(PremiumTheme.TEXT_SECONDARY);
+            contentPanel.add(tagLabel);
+            contentPanel.add(Box.createVerticalStrut(5));
         }
 
-        // Due date - NO EMOJI
+        // Due date
         JLabel dueDateLabel = new JLabel("Due: " + com.edutask.util.DateUtils.getDueLabel(task.getDueDate()));
         dueDateLabel.setFont(PremiumTheme.FONT_SMALL);
         dueDateLabel.setForeground(PremiumTheme.TEXT_SECONDARY);
         contentPanel.add(dueDateLabel);
         contentPanel.add(Box.createVerticalStrut(5));
 
-        // Priority stars - REPLACED WITH ASTERISKS
+        // Priority stars (using asterisks for compatibility)
         JLabel priorityLabel = new JLabel("Priority: " + "*".repeat(task.getPriority()));
         priorityLabel.setFont(PremiumTheme.FONT_SMALL);
         priorityLabel.setForeground(getPriorityColor());
         contentPanel.add(priorityLabel);
         contentPanel.add(Box.createVerticalStrut(5));
 
-        // Status badge - TEXT ONLY
+        // Status badge
         JLabel statusLabel = new JLabel(getStatusText());
         statusLabel.setFont(new Font("Arial", Font.BOLD, 10));
         statusLabel.setForeground(Color.WHITE);
@@ -86,7 +100,7 @@ public class StickyNotePanel extends JPanel {
         int width = getWidth();
         int height = getHeight();
 
-        // Shadow
+        // Shadow (deeper when hovered)
         if (isHovered) {
             g2.setColor(new Color(0, 0, 0, 50));
             g2.fillRoundRect(5, 5, width - 10, height - 10, 8, 8);
@@ -133,19 +147,45 @@ public class StickyNotePanel extends JPanel {
         g2.drawLine(x, y + 5, x, y + 12);
     }
 
-    private void addHoverEffect() {
-        addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
+    private void addInteractionHandlers() {
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    // DOUBLE-CLICK: Show beautiful popup dialog
+                    showTaskDetailsPopup();
+                } else if (e.getClickCount() == 1) {
+                    // SINGLE-CLICK: Select task
+                    if (mainFrame != null && mainFrame.taskListPanel != null) {
+                        mainFrame.taskListPanel.setSelectedTask(task);
+                    }
+                    com.edutask.audio.SoundManager.getInstance().playClick();
+                }
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
                 isHovered = true;
                 setCursor(new Cursor(Cursor.HAND_CURSOR));
                 repaint();
             }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
+
+            @Override
+            public void mouseExited(MouseEvent e) {
                 isHovered = false;
                 setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
                 repaint();
             }
         });
+    }
+
+    private void showTaskDetailsPopup() {
+        // Create and show the beautiful details dialog
+        TaskDetailsDialog dialog = new TaskDetailsDialog(mainFrame, task, taskService);
+        dialog.setVisible(true);
+
+        // Play a nice sound
+        com.edutask.audio.SoundManager.getInstance().playAdd();
     }
 
     public void setSelected(boolean selected) {
@@ -182,6 +222,7 @@ public class StickyNotePanel extends JPanel {
     }
 
     private String truncate(String text, int maxLength) {
+        if (text == null) return "";
         if (text.length() <= maxLength) return text;
         return text.substring(0, maxLength - 3) + "...";
     }

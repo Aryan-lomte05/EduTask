@@ -66,7 +66,7 @@ EduTask isn't just another task manager, it's your **AI-powered study companion*
 <div align="center">
 
 
-![Demp](https://github.com/Aryan-lomte05/ecesa-website/blob/main/src/assets/images/council-group.JPG)
+
 *Beautiful sticky notes with realistic pins, shadows, and color-coded priorities*
 
 
