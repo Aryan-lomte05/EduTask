@@ -65,25 +65,28 @@ EduTask isn't just another task manager, it's your **AI-powered study companion*
 
 <div align="center">
 
+<img src="https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/About.png" alt="About Page" width="100%"/>
+<em>The Lovely Gist</em>
 
-https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/About.png
-*The Lovely Gist*
+<br/>
 
+<img src="https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/Landing.png" alt="Sticky Notes Interface" width="100%"/>
+<em>Beautiful sticky notes with realistic pins, shadows, and color-coded priorities</em>
 
-https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/Landing.png
-*Beautiful sticky notes with realistic pins, shadows, and color-coded priorities*
+<br/>
 
+<img src="https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/Basic%20Quiz.png" alt="Quiz Feature" width="100%"/>
+<em>Intelligent question generation with multiple question types and instant feedback</em>
 
-https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/Basic%20Quiz.png
-*Intelligent question generation with multiple question types and instant feedback*
+<br/>
 
+<img src="https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/Annual.png" alt="Annual View" width="100%"/>
+<em>Seamless navigation between different time scales with interactive controls</em>
 
-https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/Annual.png
-*Seamless navigation between different time scales with interactive controls*
+<br/>
 
-
-https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/Landing%20with%20Analytics.png
-*Track your productivity with visual charts and real-time statistics*
+<img src="https://github.com/Aryan-lomte05/EduTask/blob/main/Resources/images/Landing%20with%20Analytics.png" alt="Analytics Dashboard" width="100%"/>
+<em>Track your productivity with visual charts and real-time statistics</em>
 
 </div>
 
