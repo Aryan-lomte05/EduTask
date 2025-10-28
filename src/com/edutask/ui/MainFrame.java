@@ -225,7 +225,7 @@ public class MainFrame extends JFrame {
         // Row 1
         gbc.gridy = 2;
         gbc.gridx = 0;
-        panel.add(createPremiumActionButton("ADD", new Color(50, 150, 50), e -> {
+        panel.add(createPremiumActionButton("ADD", new Color(139, 28, 59), e -> {
             taskFormPanel.clearForm();
             com.edutask.audio.SoundManager.getInstance().playAdd();
         }), gbc);
@@ -316,11 +316,11 @@ public class MainFrame extends JFrame {
                                               java.awt.event.ActionListener action) {
         JButton btn = new JButton(text);
         btn.setFont(new Font("Arial", Font.BOLD, 10));
-        btn.setForeground(Color.WHITE);
+        btn.setForeground(Color.RED);
         btn.setBackground(bgColor);
-        btn.setFocusPainted(false);
+        btn.setFocusPainted(true);
         btn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(bgColor.darker(), 2, true),
+                BorderFactory.createLineBorder(bgColor.darker(), 8, true),
                 BorderFactory.createEmptyBorder(8, 3, 8, 3)
         ));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
