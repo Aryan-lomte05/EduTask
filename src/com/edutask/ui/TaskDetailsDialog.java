@@ -3,158 +3,222 @@ package com.edutask.ui;
 import com.edutask.model.*;
 import com.edutask.service.TaskService;
 import com.edutask.ui.themes.PremiumTheme;
-import com.edutask.audio.SoundManager;
+
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
+import javax.swing.border.*;
 import java.awt.*;
 import java.time.format.DateTimeFormatter;
 
 public class TaskDetailsDialog extends JDialog {
-    private Task task;
-    private TaskService taskService;
-    private MainFrame parent;
+    private final Task task;
+    private final TaskService taskService;
+    private final MainFrame mainFrame;
 
-    public TaskDetailsDialog(MainFrame parent, Task task, TaskService taskService) {
-        super(parent, "Task Details", true);
-        this.parent = parent;
+    public TaskDetailsDialog(MainFrame mainFrame, Task task, TaskService taskService) {
+        super(mainFrame, "Task Details", true);
+        this.mainFrame = mainFrame;
         this.task = task;
         this.taskService = taskService;
 
-        initializeUI();
-        setSize(500, 600);
-        setLocationRelativeTo(parent);
-    }
+        setLayout(new BorderLayout(0, 0));
+        setSize(550, 750);  // Taller dialog
+        setLocationRelativeTo(mainFrame);
+        setResizable(true);
 
-    private void initializeUI() {
-        setLayout(new BorderLayout(15, 15));
+        JScrollPane bodyScroll = new JScrollPane(createBody());
+        bodyScroll.setBorder(null);
+        bodyScroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        add(createHeader(), BorderLayout.NORTH);
+        add(bodyScroll, BorderLayout.CENTER);
+        add(createFooter(), BorderLayout.SOUTH);
+
         getContentPane().setBackground(Color.WHITE);
-        ((JPanel) getContentPane()).setBorder(new EmptyBorder(20, 20, 20, 20));
-
-        add(createHeaderPanel(), BorderLayout.NORTH);
-        add(createContentPanel(), BorderLayout.CENTER);
-        add(createActionPanel(), BorderLayout.SOUTH);
     }
 
-    private JPanel createHeaderPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setOpaque(false);
+    private JPanel createHeader() {
+        JPanel header = new JPanel(new BorderLayout(10, 0));
+        header.setBackground(PremiumTheme.getStickyColorByPriority(task.getPriority()));
+        header.setBorder(new CompoundBorder(
+                new MatteBorder(0, 0, 3, 0, PremiumTheme.CORK_DARK),
+                new EmptyBorder(20, 20, 20, 20)
+        ));
 
-        JLabel titleLabel = new JLabel("📋 " + task.getTitle());
+        JLabel titleLabel = new JLabel(task.getTitle());
         titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
         titleLabel.setForeground(PremiumTheme.TEXT_PRIMARY);
 
-        JLabel statusLabel = new JLabel(getStatusBadge());
-        statusLabel.setFont(new Font("Arial", Font.BOLD, 12));
-        statusLabel.setOpaque(true);
-        statusLabel.setBackground(getStatusColor());
-        statusLabel.setForeground(Color.WHITE);
-        statusLabel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+        String stars = "*".repeat(task.getPriority()) + ".".repeat(5 - task.getPriority());
+        JLabel priorityLabel = new JLabel(stars);
+        priorityLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+        priorityLabel.setForeground(new Color(255, 193, 7));
 
-        panel.add(titleLabel, BorderLayout.CENTER);
-        panel.add(statusLabel, BorderLayout.EAST);
+        header.add(titleLabel, BorderLayout.CENTER);
+        header.add(priorityLabel, BorderLayout.EAST);
 
-        return panel;
+        return header;
     }
 
-    private JPanel createContentPanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setOpaque(false);
-        panel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
+    private JPanel createBody() {
+        JPanel body = new JPanel();
+        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+        body.setBackground(Color.WHITE);
+        body.setBorder(new EmptyBorder(20, 25, 20, 25));
+
+        body.add(createInfoRow("Category", task.getCategory().getDisplay(),
+                new Color(52, 152, 219), Color.WHITE));
+        body.add(Box.createVerticalStrut(12));
+
+        Color statusColor = switch (task.getStatus()) {
+            case TODO -> new Color(149, 165, 166);
+            case IN_PROGRESS -> new Color(241, 196, 15);
+            case COMPLETED -> new Color(46, 204, 113);
+        };
+        body.add(createInfoRow("Status", task.getStatus().getDisplay(), statusColor, Color.WHITE));
+        body.add(Box.createVerticalStrut(12));
 
         if (task instanceof StudyTask st) {
-            panel.add(createInfoRow("📚 Subject:", st.getSubject()));
-            panel.add(Box.createVerticalStrut(10));
-            panel.add(createInfoRow("🎯 Topic:", st.getTopic()));
+            body.add(createInfoRow("Subject", st.getSubject(),
+                    new Color(155, 89, 182), Color.WHITE));
+            body.add(Box.createVerticalStrut(12));
+            body.add(createInfoRow("Topic", st.getTopic(),
+                    new Color(142, 68, 173), Color.WHITE));
+            body.add(Box.createVerticalStrut(12));
         } else if (task instanceof PersonalTask pt) {
-            panel.add(createInfoRow("🏷️ Tag:", pt.getTag()));
+            body.add(createInfoRow("Tag", pt.getTag(),
+                    new Color(230, 126, 34), Color.WHITE));
+            body.add(Box.createVerticalStrut(12));
         }
 
-        panel.add(Box.createVerticalStrut(10));
-        panel.add(createInfoRow("📂 Category:", task.getCategory().getDisplay()));
-        panel.add(Box.createVerticalStrut(10));
+        String dueDateStr = task.getDueDate().format(DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy"));
 
-        // Fixed due date formatting
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy");
-        String dueInfo = task.getDueDate().format(formatter);
-        panel.add(createInfoRow("📅 Due Date:", dueInfo));
-        panel.add(Box.createVerticalStrut(10));
+        String dueTimeStr = "12:00 PM";
+        try {
+            if (task.getDueTime() != null) {
+                dueTimeStr = task.getDueTime().format(DateTimeFormatter.ofPattern("hh:mm a"));
+            }
+        } catch (Exception ignored) {}
 
-        String priorityStars = "⭐".repeat(task.getPriority());
-        panel.add(createInfoRow("⭐ Priority:", priorityStars + " (" + task.getPriority() + "/5)"));
-        panel.add(Box.createVerticalStrut(15));
+        body.add(createInfoRow("Due Date", dueDateStr,
+                new Color(231, 76, 60), Color.WHITE));
+        body.add(Box.createVerticalStrut(12));
+        body.add(createInfoRow("Due Time", dueTimeStr,
+                new Color(192, 57, 43), Color.WHITE));
+        body.add(Box.createVerticalStrut(12));
 
-        JLabel detailsLabel = new JLabel("Details:");
-        detailsLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        detailsLabel.setForeground(PremiumTheme.TEXT_SECONDARY);
-        detailsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(detailsLabel);
-        panel.add(Box.createVerticalStrut(5));
+        if (task.getDetails() != null && !task.getDetails().isEmpty()) {
+            JPanel detailsPanel = new JPanel(new BorderLayout());
+            detailsPanel.setBackground(new Color(236, 240, 241));
+            detailsPanel.setBorder(new CompoundBorder(
+                    new LineBorder(new Color(189, 195, 199), 1, true),
+                    new EmptyBorder(12, 12, 12, 12)
+            ));
 
-        JTextArea detailsArea = new JTextArea(task.getDetails());
-        detailsArea.setEditable(false);
-        detailsArea.setLineWrap(true);
-        detailsArea.setWrapStyleWord(true);
-        detailsArea.setFont(new Font("Arial", Font.PLAIN, 13));
-        detailsArea.setBackground(new Color(245, 245, 245));
-        detailsArea.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 200, 200)),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
+            JLabel detailsLabel = new JLabel("Details:");
+            detailsLabel.setFont(new Font("Arial", Font.BOLD, 12));
+            detailsLabel.setForeground(PremiumTheme.TEXT_SECONDARY);
 
-        JScrollPane scrollPane = new JScrollPane(detailsArea);
-        scrollPane.setPreferredSize(new Dimension(0, 150));
-        scrollPane.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.add(scrollPane);
+            JTextArea detailsArea = new JTextArea(task.getDetails());
+            detailsArea.setFont(PremiumTheme.FONT_BODY);
+            detailsArea.setLineWrap(true);
+            detailsArea.setWrapStyleWord(true);
+            detailsArea.setEditable(false);
+            detailsArea.setOpaque(false);
+            detailsArea.setBorder(new EmptyBorder(8, 0, 0, 0));
 
-        return panel;
+            detailsPanel.add(detailsLabel, BorderLayout.NORTH);
+            detailsPanel.add(detailsArea, BorderLayout.CENTER);
+
+            body.add(detailsPanel);
+            body.add(Box.createVerticalStrut(15));
+        }
+
+        JPanel timestampPanel = new JPanel(new GridLayout(2, 1, 5, 5));
+        timestampPanel.setOpaque(false);
+        timestampPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        JLabel createdLabel = new JLabel("Created: " +
+                task.getCreated().format(DateTimeFormatter.ofPattern("MMM dd, yyyy hh:mm a")));
+        createdLabel.setFont(new Font("Arial", Font.ITALIC, 10));
+        createdLabel.setForeground(PremiumTheme.TEXT_SECONDARY);
+
+        JLabel modifiedLabel = new JLabel("Modified: " +
+                task.getModified().format(DateTimeFormatter.ofPattern("MMM dd, yyyy hh:mm a")));
+        modifiedLabel.setFont(new Font("Arial", Font.ITALIC, 10));
+        modifiedLabel.setForeground(PremiumTheme.TEXT_SECONDARY);
+
+        timestampPanel.add(createdLabel);
+        timestampPanel.add(modifiedLabel);
+        body.add(timestampPanel);
+
+        return body;
     }
 
-    private JPanel createInfoRow(String label, String value) {
+    private JPanel createInfoRow(String label, String value, Color bgColor, Color textColor) {
         JPanel row = new JPanel(new BorderLayout(10, 0));
+        row.setMaximumSize(new Dimension(500, 40));
         row.setOpaque(false);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
 
-        JLabel labelComp = new JLabel(label);
-        labelComp.setFont(new Font("Arial", Font.BOLD, 13));
+        JLabel labelComp = new JLabel(label + ":");
+        labelComp.setFont(new Font("Arial", Font.BOLD, 11));
         labelComp.setForeground(PremiumTheme.TEXT_SECONDARY);
+        labelComp.setPreferredSize(new Dimension(80, 40));
 
-        JLabel valueComp = new JLabel(value);
-        valueComp.setFont(new Font("Arial", Font.PLAIN, 13));
-        valueComp.setForeground(PremiumTheme.TEXT_PRIMARY);
+        JPanel valueBadge = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 9));
+        valueBadge.setBackground(bgColor);
+        valueBadge.setBorder(new CompoundBorder(
+                new LineBorder(bgColor.darker(), 1, true),
+                new EmptyBorder(0, 12, 0, 12)
+        ));
+
+        JLabel valueLabel = new JLabel(value);
+        valueLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        valueLabel.setForeground(textColor);
+        valueBadge.add(valueLabel);
 
         row.add(labelComp, BorderLayout.WEST);
-        row.add(valueComp, BorderLayout.CENTER);
+        row.add(valueBadge, BorderLayout.CENTER);
 
         return row;
     }
 
-    private JPanel createActionPanel() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
-        panel.setOpaque(false);
+    private JPanel createFooter() {
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 20));
+        footer.setBackground(new Color(250, 250, 250));
+        footer.setBorder(new MatteBorder(2, 0, 0, 0, new Color(220, 220, 220)));
+        footer.setPreferredSize(new Dimension(550, 85));
 
-        JButton editBtn = new JButton("✏️ Edit");
-        JButton deleteBtn = new JButton("🗑️ Delete");
-        JButton closeBtn = new JButton("Close");
-
-        PremiumTheme.styleButton(editBtn);
-        PremiumTheme.styleButton(deleteBtn);
-        PremiumTheme.styleButton(closeBtn);
-
-        editBtn.addActionListener(e -> {
-            parent.getTaskFormPanel().loadTask(task);
+        JButton editBtn = createActionButton("EDIT", new Color(41, 128, 185), e -> {
             dispose();
+            if (mainFrame != null && mainFrame.taskFormPanel != null) {
+                mainFrame.taskFormPanel.loadTask(task);
+            }
         });
 
-        deleteBtn.addActionListener(e -> {
+        JButton completeBtn = createActionButton(
+                task.getStatus() == Status.COMPLETED ? "UNDO" : "COMPLETE",
+                new Color(39, 174, 96), e -> {
+                    try {
+                        if (task.getStatus() == Status.COMPLETED) {
+                            task.setStatus(Status.TODO);
+                            taskService.updateTask(task);
+                        } else {
+                            taskService.completeTask(task.getId());
+                        }
+                        if (mainFrame != null) mainFrame.refreshAll();
+                        dispose();
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
+                    }
+                });
+
+        JButton deleteBtn = createActionButton("DELETE", new Color(192, 57, 43), e -> {
             int confirm = JOptionPane.showConfirmDialog(this,
-                    "Delete task: " + task.getTitle() + "?",
-                    "Confirm Delete", JOptionPane.YES_NO_OPTION);
+                    "Delete this task permanently?", "Confirm", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
                 try {
                     taskService.deleteTask(task.getId());
-                    SoundManager.getInstance().playDelete();
-                    parent.refreshAll();
+                    if (mainFrame != null) mainFrame.refreshAll();
                     dispose();
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
@@ -162,38 +226,43 @@ public class TaskDetailsDialog extends JDialog {
             }
         });
 
-        closeBtn.addActionListener(e -> dispose());
+        JButton closeBtn = createActionButton("CLOSE", new Color(127, 140, 141), e -> dispose());
 
-        if (task instanceof StudyTask st && task.getStatus() == Status.COMPLETED) {
-            JButton quizBtn = new JButton("🎓 Take Quiz");
-            PremiumTheme.styleButton(quizBtn);
-            quizBtn.addActionListener(e -> {
-                QuizDialog quiz = new QuizDialog(parent, st.getSubject(), st.getTopic(), 15);
-                quiz.setVisible(true);
-            });
-            panel.add(quizBtn);
-        }
+        footer.add(editBtn);
+        footer.add(completeBtn);
+        footer.add(deleteBtn);
+        footer.add(closeBtn);
 
-        panel.add(editBtn);
-        panel.add(deleteBtn);
-        panel.add(closeBtn);
-
-        return panel;
+        return footer;
     }
 
-    private String getStatusBadge() {
-        return switch (task.getStatus()) {
-            case COMPLETED -> "[DONE]";
-            case IN_PROGRESS -> "[IN PROGRESS]";
-            default -> "[TO DO]";
-        };
+    private JButton createActionButton(String text, Color bgColor, java.awt.event.ActionListener action) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Arial", Font.BOLD, 14));
+        btn.setForeground(Color.WHITE);
+        btn.setBackground(bgColor);
+        btn.setFocusPainted(false);
+
+        // Prevent Nimbus / system LAF from dulling colors
+        btn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        btn.setBorder(new CompoundBorder(
+                new LineBorder(bgColor.darker(), 2, true),
+                new EmptyBorder(10, 20, 10, 20)
+        ));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // Hover effect with visible contrast
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btn.setBackground(bgColor.brighter());
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btn.setBackground(bgColor);
+            }
+        });
+
+        btn.addActionListener(action);
+        return btn;
     }
 
-    private Color getStatusColor() {
-        return switch (task.getStatus()) {
-            case COMPLETED -> new Color(50, 180, 50);
-            case IN_PROGRESS -> new Color(255, 150, 0);
-            default -> new Color(150, 150, 150);
-        };
-    }
 }

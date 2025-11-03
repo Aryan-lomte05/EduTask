@@ -3,12 +3,13 @@ package com.edutask.persistence;
 import com.edutask.model.*;
 import com.edutask.util.AppException;
 import com.google.gson.*;
-import com.google.gson.stream.JsonReader;   // ← ADD THIS
-import com.google.gson.stream.JsonWriter;   // ← ADD THIS
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 import java.io.*;
 import java.nio.file.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -24,6 +25,7 @@ public class FileStore implements Store {
         gson = new GsonBuilder()
                 .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
                 .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+                .registerTypeAdapter(LocalTime.class, new LocalTimeAdapter())  // ✅ NEW
                 .registerTypeAdapter(Task.class, new TaskAdapter())
                 .setPrettyPrinting()
                 .create();
@@ -87,7 +89,7 @@ public class FileStore implements Store {
         // No-op for file store
     }
 
-    // Custom adapters for Gson
+    // Adapters
     private static class LocalDateAdapter extends TypeAdapter<LocalDate> {
         @Override
         public void write(JsonWriter out, LocalDate value) throws IOException {
@@ -107,6 +109,19 @@ public class FileStore implements Store {
         @Override
         public LocalDateTime read(JsonReader in) throws IOException {
             return LocalDateTime.parse(in.nextString());
+        }
+    }
+
+    // ✅ NEW: LocalTime adapter
+    private static class LocalTimeAdapter extends TypeAdapter<LocalTime> {
+        @Override
+        public void write(JsonWriter out, LocalTime value) throws IOException {
+            out.value(value != null ? value.toString() : "12:00");
+        }
+        @Override
+        public LocalTime read(JsonReader in) throws IOException {
+            String timeStr = in.nextString();
+            return timeStr != null && !timeStr.isEmpty() ? LocalTime.parse(timeStr) : LocalTime.of(12, 0);
         }
     }
 

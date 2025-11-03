@@ -1,5 +1,6 @@
 package com.edutask.ui;
 
+import com.edutask.model.Task;
 import com.edutask.service.*;
 import com.edutask.events.*;
 import com.edutask.ui.themes.PremiumTheme;
@@ -14,9 +15,9 @@ public class MainFrame extends JFrame {
     private SearchService searchService;
     private ReactionService reactionService;
     private EventBus eventBus;
+    public TaskFormPanel taskFormPanel;  // Make public or add getter
+    public TaskListPanel taskListPanel;
 
-    public TaskListPanel taskListPanel;  // Changed to public
-    public TaskFormPanel taskFormPanel;
     private FilterPanel filterPanel;
     private StatusBar statusBar;
     private AnalyticsPanel analyticsPanel;
@@ -34,6 +35,11 @@ public class MainFrame extends JFrame {
         initializeUI();
         setupWindowListener();
         registerKeyboardShortcuts();
+    }
+
+    public void editTask(Task task) {
+        taskFormPanel.loadTask(task);
+        // Optionally switch to task form tab if you have tabs
     }
 
     private void initializeUI() {
@@ -54,6 +60,7 @@ public class MainFrame extends JFrame {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         // Create panels
+
         taskListPanel = new TaskListPanel(this, taskService);
         taskFormPanel = new TaskFormPanel(this, taskService);
         statusBar = new StatusBar(taskService);
@@ -432,7 +439,11 @@ public class MainFrame extends JFrame {
                     new com.edutask.util.ImportExportManager(taskService);
             manager.exportToCSV(this);
         });
-
+        JMenuItem exportPDF = new JMenuItem("Export to PDF...");
+        exportPDF.addActionListener(e -> {
+            com.edutask.util.PDFExporter.showExportDialog(taskService, this);
+        });
+        fileMenu.add(exportPDF);
         fileMenu.add(exportJSONItem);
         fileMenu.add(importJSONItem);
         fileMenu.add(exportCSVItem);

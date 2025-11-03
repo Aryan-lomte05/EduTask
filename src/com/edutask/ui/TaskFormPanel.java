@@ -642,6 +642,17 @@ public class TaskFormPanel extends JPanel {
             LocalDate dueDate = parseDateSafe(dueDateField.getText().trim(), LocalDate.now());
             Validator.validateDueDate(dueDate);
 
+            // ✅ EXTRACT TIME FROM SPINNER
+            LocalTime dueTime = LocalTime.of(12, 0); // Default
+            try {
+                java.util.Date spinnerDate = (java.util.Date) timeSpinner.getValue();
+                dueTime = spinnerDate.toInstant()
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalTime();
+            } catch (Exception e) {
+                System.err.println("Error parsing time, using default 12:00");
+            }
+
             int priority = (Integer) prioritySpinner.getValue();
             Validator.validatePriority(priority);
 
@@ -655,11 +666,15 @@ public class TaskFormPanel extends JPanel {
                 String subject = subjectField.getText().trim();
                 String topic = topicField.getText().trim();
                 Validator.validateStudyFields(subject, topic);
-                task = new StudyTask(id, title, details, dueDate, priority, subject, topic);
+
+                // ✅ USE NEW CONSTRUCTOR WITH TIME
+                task = new StudyTask(id, title, details, dueDate, dueTime, priority, subject, topic);
             } else {
                 String tag = tagField.getText().trim();
                 if (tag.isEmpty()) tag = "General";
-                task = new PersonalTask(id, title, details, dueDate, priority, tag);
+
+                // ✅ USE NEW CONSTRUCTOR WITH TIME
+                task = new PersonalTask(id, title, details, dueDate, dueTime, priority, tag);
             }
 
             if (currentTask != null) {
@@ -680,8 +695,10 @@ public class TaskFormPanel extends JPanel {
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, Icons.CROSS + " Error: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
         }
     }
+
 
     public void clearForm() {
         currentTask = null;
@@ -738,6 +755,7 @@ public class TaskFormPanel extends JPanel {
     private void addField(JPanel p, GridBagConstraints gbc, int row, JComponent field) {
         addField(p, gbc, row, field, GridBagConstraints.HORIZONTAL, 0.0);
     }
+
 
     private void addField(JPanel p, GridBagConstraints gbc, int row, JComponent field, int fill, double weightY) {
         gbc.gridx = 1; gbc.gridy = row;

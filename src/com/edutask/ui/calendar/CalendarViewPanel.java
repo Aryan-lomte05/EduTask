@@ -44,7 +44,7 @@ public class CalendarViewPanel extends JPanel {
 
         yearlyView = new YearlyCalendarView(taskService, this);
         monthlyView = new MonthlyCalendarView(taskService, this);
-        weeklyView = new WeeklyGanttView(taskService, this);
+        weeklyView = new WeeklyGanttView(taskService, mainFrame);
 
         viewContainer.add(yearlyView, "YEARLY");
         viewContainer.add(monthlyView, "MONTHLY");

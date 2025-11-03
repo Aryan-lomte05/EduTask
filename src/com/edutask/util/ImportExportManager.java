@@ -9,6 +9,7 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.*;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 
 public class ImportExportManager {
@@ -19,11 +20,11 @@ public class ImportExportManager {
         this.taskService = taskService;
         this.gson = new GsonBuilder()
                 .registerTypeAdapter(LocalDate.class, new LocalDateAdapter())
+                .registerTypeAdapter(LocalTime.class, new LocalTimeAdapter())  // ✅ NEW
                 .setPrettyPrinting()
                 .create();
     }
 
-    // Export to JSON
     public void exportToJSON(JFrame parent) {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileFilter(new FileNameExtensionFilter("JSON Files", "json"));
@@ -40,7 +41,6 @@ public class ImportExportManager {
         }
     }
 
-    // Import from JSON
     public void importFromJSON(JFrame parent) {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileFilter(new FileNameExtensionFilter("JSON Files", "json"));
@@ -68,7 +68,6 @@ public class ImportExportManager {
         }
     }
 
-    // Export to CSV
     public void exportToCSV(JFrame parent) {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileFilter(new FileNameExtensionFilter("CSV Files", "csv"));
@@ -76,10 +75,11 @@ public class ImportExportManager {
 
         if (chooser.showSaveDialog(parent) == JFileChooser.APPROVE_OPTION) {
             try (PrintWriter writer = new PrintWriter(chooser.getSelectedFile())) {
-                writer.println("ID,Title,Details,Category,Status,Priority,DueDate,Subject,Topic,Tag");
+                // ✅ ADDED DueTime column
+                writer.println("ID,Title,Details,Category,Status,Priority,DueDate,DueTime,Subject,Topic,Tag");
 
                 for (Task task : taskService.getAllTasks()) {
-                    writer.printf("%s,%s,%s,%s,%s,%d,%s,%s,%s,%s%n",
+                    writer.printf("%s,%s,%s,%s,%s,%d,%s,%s,%s,%s,%s%n",
                             task.getId(),
                             escapeCSV(task.getTitle()),
                             escapeCSV(task.getDetails()),
@@ -87,6 +87,7 @@ public class ImportExportManager {
                             task.getStatus().getDisplay(),
                             task.getPriority(),
                             task.getDueDate().toString(),
+                            task.getDueTime().toString(),  // ✅ NEW
                             task instanceof StudyTask ? ((StudyTask) task).getSubject() : "",
                             task instanceof StudyTask ? ((StudyTask) task).getTopic() : "",
                             task instanceof PersonalTask ? ((PersonalTask) task).getTag() : ""
@@ -102,13 +103,14 @@ public class ImportExportManager {
     }
 
     private String escapeCSV(String value) {
+        if (value == null) return "";
         if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;
     }
 
-    // LocalDate adapter for Gson
+    // Adapters
     private static class LocalDateAdapter extends TypeAdapter<LocalDate> {
         @Override
         public void write(JsonWriter out, LocalDate value) throws IOException {
@@ -118,6 +120,20 @@ public class ImportExportManager {
         @Override
         public LocalDate read(JsonReader in) throws IOException {
             return LocalDate.parse(in.nextString());
+        }
+    }
+
+    // ✅ NEW: LocalTime adapter
+    private static class LocalTimeAdapter extends TypeAdapter<LocalTime> {
+        @Override
+        public void write(JsonWriter out, LocalTime value) throws IOException {
+            out.value(value != null ? value.toString() : "12:00");
+        }
+
+        @Override
+        public LocalTime read(JsonReader in) throws IOException {
+            String timeStr = in.nextString();
+            return timeStr != null && !timeStr.isEmpty() ? LocalTime.parse(timeStr) : LocalTime.of(12, 0);
         }
     }
 }

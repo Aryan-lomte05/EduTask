@@ -2,6 +2,7 @@ package com.edutask.model;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 public abstract class Task {
     protected String id;
@@ -9,7 +10,8 @@ public abstract class Task {
     protected String details;
     protected Category category;
     protected LocalDate dueDate;
-    protected int priority; // 1-5
+    protected LocalTime dueTime;  // ✅ Already added
+    protected int priority;
     protected Status status;
     protected LocalDateTime created;
     protected LocalDateTime modified;
@@ -21,21 +23,12 @@ public abstract class Task {
         this.details = details;
         this.category = category;
         this.dueDate = dueDate;
+        this.dueTime = LocalTime.of(12, 0);  // ✅ Default noon
         this.priority = Math.min(5, Math.max(1, priority));
         this.status = Status.TODO;
         this.created = LocalDateTime.now();
         this.modified = LocalDateTime.now();
     }
-    // Add this to Task.java
-    public String getDisplaySubject() {
-        if (this instanceof StudyTask st) {
-            return st.getSubject();
-        } else if (this instanceof PersonalTask pt) {
-            return pt.getTag();
-        }
-        return "General";
-    }
-
 
     // Getters and Setters
     public String getId() { return id; }
@@ -55,6 +48,14 @@ public abstract class Task {
         this.dueDate = dueDate;
         this.modified = LocalDateTime.now();
     }
+
+    // ✅ NEW: DueTime getter/setter
+    public LocalTime getDueTime() { return dueTime; }
+    public void setDueTime(LocalTime dueTime) {
+        this.dueTime = dueTime;
+        this.modified = LocalDateTime.now();
+    }
+
     public int getPriority() { return priority; }
     public void setPriority(int priority) {
         this.priority = Math.min(5, Math.max(1, priority));
@@ -68,5 +69,20 @@ public abstract class Task {
     public LocalDateTime getCreated() { return created; }
     public LocalDateTime getModified() { return modified; }
 
+    public String getDisplaySubject() {
+        if (this instanceof StudyTask st) {
+            return st.getSubject();
+        } else if (this instanceof PersonalTask pt) {
+            return pt.getTag();
+        }
+        return "General";
+    }
+
     public abstract String getDisplayTopic();
+
+    @Override
+    public String toString() {
+        return String.format("[%s] %s - Due: %s %s - Priority: %d - Status: %s",
+                category.getDisplay(), title, dueDate, dueTime, priority, status.getDisplay());
+    }
 }

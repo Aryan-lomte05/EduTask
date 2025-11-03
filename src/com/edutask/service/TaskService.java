@@ -5,6 +5,9 @@ import com.edutask.persistence.Store;
 import com.edutask.events.*;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 public class TaskService {
     private Store store;
@@ -66,6 +69,13 @@ public class TaskService {
                 .filter(t -> t.getStatus() == status)
                 .collect(Collectors.toList());
     }
+    // In TaskService.java, add:
+    public List<Task> getTasksByDate(LocalDate date) {
+        return tasks.stream()
+                .filter(t -> t.getDueDate().equals(date))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
 
     public List<Task> getTodayTasks() {
         return tasks.stream()
