@@ -18,5 +18,6 @@ backups/
 .DS_Store
 Thumbs.db
 
+EduTask-1.0.0.exe
 # Optional: Keep JARs or exclude them
 # lib/*.jar
