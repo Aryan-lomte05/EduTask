@@ -14,8 +14,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class FileStore implements Store {
-    private static final String DATA_DIR = "data/";
-    private static final String BACKUP_DIR = "backups/";
+    private static final String DATA_DIR = System.getProperty("app.data.dir",
+            System.getProperty("user.home") + File.separator + ".edutask" + File.separator + "data");
+
+    private static final String BACKUP_DIR = System.getProperty("app.backup.dir",
+            System.getProperty("user.home") + File.separator + ".edutask" + File.separator + "backups");
+
     private static final String TASKS_FILE = DATA_DIR + "tasks.json";
     private static final String SESSIONS_FILE = DATA_DIR + "sessions.json";
 
